@@ -100,8 +100,8 @@ DEFAULT_ACCOUNT = {
     "activeCosmetics": [],
     "ownedBundles": [],
     "wishlist": [],
-    "eyeColor": 0,
-    "skinColor": -1,
+    "eyeColor": -1,
+    "skinColor": 0,
     "mobileCode": "9200",
     "hasCreatorPack": 1,
     "hasUnlockedPrivateRooms": 1,
@@ -121,8 +121,8 @@ DEFAULT_ACCOUNT = {
     "shouldForceRefresh": 0,
     "isPermabanned": 0,
     "isMutebanned": 0,
-    "remainingBanHours": 1,
-    "banReason": "<color=blue>920Man's Yeeps</color>",
+    "remainingBanHours": 0,
+    "banReason": "",
     "skipAttestation": 1,
     "lastChallengeRedeemedTime_login": "1970 01/01 00:00:00",
     "lastChallengeRedeemedTime_easy": "1970 01/01 00:00:00",
@@ -140,8 +140,8 @@ async def handle_login(body: dict) -> dict:
     """
     account_id = body.get("accountID", "")
     oculus_id = body.get("oculusID", "")
-    initial_skin = body.get("initialSkinColor", -3489025)
-    initial_eye = body.get("initialEyeColor", -2039846657)
+    initial_skin = body.get("initialSkinColor", 0)
+    initial_eye = body.get("initialEyeColor", -1)
     props_to_get = body.get("propertiesToGet", [])
 
     # Look up or create account

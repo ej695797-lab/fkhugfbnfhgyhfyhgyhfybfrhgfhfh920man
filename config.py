@@ -59,6 +59,32 @@ def _writable_log_dir() -> Path:
 
 LOG_DIR = _writable_log_dir()
 
+
+def _writable_data_dir() -> Path:
+    """
+    Location for the file-backed database. Same read-only-filesystem fallback
+    as logs, so this works on Render and other PaaS images.
+    """
+    preferred = BASE_DIR / "data_store"
+    try:
+        preferred.mkdir(parents=True, exist_ok=True)
+        probe = preferred / ".write-probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+        return preferred
+    except OSError:
+        fallback = Path(tempfile.gettempdir()) / "yeeps-data"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+DATA_DIR = _writable_data_dir()
+
+# "auto" uses Mongo when MONGO_URI points at a real host and the bundled
+# JSON store otherwise, so the server boots with no database configured.
+# Force either with USE_FILE_DB=1 (file) or USE_FILE_DB=0 (mongo).
+USE_FILE_DB = os.getenv("USE_FILE_DB", "auto").strip().lower()
+
 # HTTPS. Generate a certificate first with: python make_cert.py
 USE_SSL = _flag("USE_SSL", "0")
 CERT_FILE = Path(os.getenv("SSL_CERTFILE", BASE_DIR / "certs" / "server.crt"))

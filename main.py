@@ -1,6 +1,8 @@
 """
 Yeeps v1 Private Server API
-FastAPI + MongoDB replacement for the original AWS Lambda + DynamoDB backend.
+
+FastAPI stand-in for the original AWS Lambda + DynamoDB backend. Data lives in
+MongoDB when MONGO_URI points at a real host, otherwise in a local JSON store.
 
 The game client sends requests to three "services" all on the same host.
 We detect which service by inspecting the path, headers, and host.
@@ -11,6 +13,7 @@ import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+import motor.motor_asyncio
 from starlette.concurrency import iterate_in_threadpool
 
 from fastapi import FastAPI, Request
@@ -18,14 +21,14 @@ from fastapi.responses import Response, JSONResponse
 
 from config import (
     LOG_DIR, SEED_DB, SERVER_HOST, SERVER_PORT, RELOAD,
-    USE_SSL, CERT_FILE, KEY_FILE,
+    USE_SSL, CERT_FILE, KEY_FILE, DATA_DIR,
+    MONGO_URI, DB_NAME,
 )
 from routers.lambda_router import router as lambda_router
 from routers.dynamo_router import router as dynamo_router
 from seed.seed_db import seed_database
 from services.replay_log import lookup_replay
-from services.db import accounts, db
-from config import MONGO_URI, DB_NAME
+from services.db import accounts, db, BACKEND
 
 HTTP_LOG_FILE = LOG_DIR / "http_traffic.log"
 
@@ -49,26 +52,36 @@ app = FastAPI(title="Yeeps v1 Private Server", lifespan=lifespan)
 @app.get("/health")
 async def health():
     """
-    Report whether MongoDB is actually reachable.
+    Report which database backend is active and whether it is reachable.
 
-    A misconfigured MONGO_URI makes every database-backed route fail with an
-    opaque 500, so surface the real driver error here instead of making the
-    operator dig through platform logs.
+    Every data-backed route fails with an opaque 500 when the database is down,
+    so surface the real cause here rather than making the operator read
+    platform logs.
     """
-    import motor.motor_asyncio
+    info = {"backend": BACKEND, "db_name": DB_NAME}
+    if BACKEND != "mongo":
+        info["storage"] = str(DATA_DIR)
+        try:
+            info["rooms"] = await db["rooms"].count_documents({})
+            info["accounts"] = await db["accounts"].count_documents({})
+            info["status"] = "ok"
+            return info
+        except Exception as exc:
+            info["status"] = f"FAILED: {type(exc).__name__}: {exc}"
+            return JSONResponse(status_code=503, content=info)
 
     redacted = re.sub(r"//[^@]+@", "//***:***@", MONGO_URI)
-    info = {"mongo_uri_host": redacted, "db_name": DB_NAME}
+    info["mongo_uri_host"] = redacted
     try:
-        client = motor.motor_asyncio.AsyncIOMotorClient(
+        probe = motor.motor_asyncio.AsyncIOMotorClient(
             MONGO_URI, serverSelectionTimeoutMS=8000
         )
-        await client.admin.command("ping")
-        info["mongo"] = "ok"
+        await probe.admin.command("ping")
         info["rooms"] = await db["rooms"].count_documents({})
+        info["status"] = "ok"
         return info
     except Exception as exc:
-        info["mongo"] = f"FAILED: {type(exc).__name__}: {exc}"
+        info["status"] = f"FAILED: {type(exc).__name__}: {exc}"
         return JSONResponse(status_code=503, content=info)
 
 

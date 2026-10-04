@@ -1,15 +1,45 @@
 """
-MongoDB connection manager.
-Uses motor (async pymongo) for FastAPI compatibility.
+Database layer.
+
+Defaults to the bundled file-backed store so the server runs with no external
+database. Point MONGO_URI at a real MongoDB host and the exact same collection
+objects are served by motor instead, with no handler changes.
 """
 
 import motor.motor_asyncio
-from config import MONGO_URI, DB_NAME
+from config import MONGO_URI, DB_NAME, DATA_DIR, USE_FILE_DB
+from services.store import FileCollection
 
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
-db = client[DB_NAME]
+_LOCAL_HOSTS = ("localhost", "127.0.0.1", "0.0.0.0")
+_is_remote = MONGO_URI.startswith(("mongodb://", "mongodb+srv://")) and not any(
+    host in MONGO_URI for host in _LOCAL_HOSTS
+)
 
-# ─── Collection accessors ────────────────────────────────────────────
+if USE_FILE_DB in {"1", "true", "yes", "on", "file"}:
+    BACKEND = "file"
+elif USE_FILE_DB in {"0", "false", "no", "off", "mongo"}:
+    BACKEND = "mongo"
+else:
+    BACKEND = "mongo" if _is_remote else "file"
+
+print(f"[db] backend={BACKEND} db={DB_NAME}")
+
+if BACKEND == "mongo":
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+    db = client[DB_NAME]
+else:
+    client = None
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    class _DB:
+        """Minimal stand-in so `db["name"]` works for both backends."""
+
+        def __getitem__(self, name):
+            return FileCollection(DATA_DIR, name)
+
+    db = _DB()
+
+# ─── Collection accessors ───────────────────────────────────────────────
 
 accounts       = db["accounts"]        # Key: accountID
 rooms          = db["rooms"]           # Key: roomKey

@@ -16,3 +16,6 @@ venv/
 *.bak
 *.dat
 *.tmp
+
+# File-backed database (runtime data, rebuilt by SEED_DB)
+data_store/
