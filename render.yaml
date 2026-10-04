@@ -1,0 +1,36 @@
+# Render Blueprint for the Yeeps private API.
+# Deploy:  https://render.com/  ->  New -> Blueprint -> point at this repo.
+#
+# You must supply MONGO_URI yourself (Render has no managed MongoDB):
+#   1. Create a free cluster at https://www.mongodb.com/atlas
+#   2. Add a database user (username/password)
+#   3. Network Access -> allow 0.0.0.0/0 (Render has no static outbound IP)
+#   4. Copy the SRV connection string into the MONGO_URI env var below.
+#
+# The service URL will be https://<name>.onrender.com - repoint the APK at it:
+#   python patch_endpoint.py --url "https://<name>.onrender.com/"
+
+services:
+  - type: web
+    name: yeeps-api
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /?UserId=healthcheck&UserName=ping
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: DB_NAME
+        value: OGYeeps
+      # Seed on boot so the first deploy creates rooms/globals/bundles.
+      # Harmless on later restarts (upserts only).
+      - key: SEED_DB
+        value: "1"
+      # Render terminates TLS itself - never bind our own cert there.
+      - key: USE_SSL
+        value: "0"
+      - key: MONGO_URI
+        sync: false

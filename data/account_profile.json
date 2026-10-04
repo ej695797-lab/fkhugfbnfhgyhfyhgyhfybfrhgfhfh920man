@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Default account profile applied to every NEW account created by g2_questLogIntoAccount.",
+    "Colours are packed ARGB ints: 0xAARRGGBB. Pure opaque black = -16777216.",
+    "",
+    "roleKeys below are the real game IDs, supplied by the server owner.",
+    "Case is significant: 'bamWinner' and 'contentCreator' are camelCase.",
+    "",
+    "ownedPatterns is still EMPTY ON PURPOSE - no list of real pattern IDs is known",
+    "yet. The captured DynamoDB log that would contain them has been deleted.",
+    "To discover the real values, run the game against this server and then run:",
+    "    python discover.py",
+    "It mines logs/ for every propertiesToGet field, table name and function name",
+    "the client actually asked for. Add the real IDs here once you find them."
+  ],
+
+  "roleKeys": [
+    "alphadebug",
+    "tester",
+    "developer_senior",
+    "developer",
+    "moderator",
+    "tester_senior",
+    "director",
+    "internal",
+    "super_star",
+    "bamWinner",
+    "contentCreator"
+  ],
+
+  "ownedPatterns": [],
+
+  "cw_admin": [],
+  "cw_staff": [],
+
+  "eyeColor": -16777216,
+  "skinColor": -16777216,
+
+  "currency": 100000,
+
+  "loginStreakData": {
+    "length": 3650,
+    "currentTier": "diamond",
+    "nextTierThreshold": 3650,
+    "nextTier": null
+  },
+
+  "hasCreatorPack": 1,
+  "hasUnlockedPrivateRooms": 1,
+
+  "lastChallengeRedeemedTime_login": "2026 12/31 23:59:59",
+  "lastChallengeRedeemedTime_easy": "2026 12/31 23:59:59",
+  "lastChallengeRedeemedTime_hard": "2026 12/31 23:59:59",
+
+  "cw_nextCanUseFreeFuelTimestamp": "2099 01/01 00:00:00",
+
+  "_knownRealIDs": {
+    "_comment": "The only verified cosmetic IDs currently known, from a captured bundle response.",
+    "bundles": { "bundle_commando": ["commando", "explosiveGrenade_frag"] }
+  }
+}
