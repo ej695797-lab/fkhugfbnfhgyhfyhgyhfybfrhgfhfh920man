@@ -5608,6 +5608,12 @@ async def handle_login(body: dict) -> dict:
             account["displayName"] = wanted_name
         print(f"[login] Existing account: {account_id}")
 
+    # DEBUG: show what the client asks for and which fields we have to fake.
+    _missing = [p for p in props_to_get if p not in account]
+    print(f"[login] body keys={sorted(body.keys())}")
+    print(f"[login] propertiesToGet={props_to_get}")
+    print(f"[login] requested but not on account (sent as blank defaults)={_missing}")
+
     # Build response from the full account payload to match legacy behavior.
     # Older clients often tolerate/expect additional fields beyond
     # propertiesToGet, so we include all known account fields.
