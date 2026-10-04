@@ -24,7 +24,8 @@ from routers.lambda_router import router as lambda_router
 from routers.dynamo_router import router as dynamo_router
 from seed.seed_db import seed_database
 from services.replay_log import lookup_replay
-from services.db import accounts
+from services.db import accounts, db
+from config import MONGO_URI, DB_NAME
 
 HTTP_LOG_FILE = LOG_DIR / "http_traffic.log"
 
@@ -43,6 +44,32 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Yeeps v1 Private Server", lifespan=lifespan)
+
+
+@app.get("/health")
+async def health():
+    """
+    Report whether MongoDB is actually reachable.
+
+    A misconfigured MONGO_URI makes every database-backed route fail with an
+    opaque 500, so surface the real driver error here instead of making the
+    operator dig through platform logs.
+    """
+    import motor.motor_asyncio
+
+    redacted = re.sub(r"//[^@]+@", "//***:***@", MONGO_URI)
+    info = {"mongo_uri_host": redacted, "db_name": DB_NAME}
+    try:
+        client = motor.motor_asyncio.AsyncIOMotorClient(
+            MONGO_URI, serverSelectionTimeoutMS=8000
+        )
+        await client.admin.command("ping")
+        info["mongo"] = "ok"
+        info["rooms"] = await db["rooms"].count_documents({})
+        return info
+    except Exception as exc:
+        info["mongo"] = f"FAILED: {type(exc).__name__}: {exc}"
+        return JSONResponse(status_code=503, content=info)
 
 
 def _safe_decode(payload: bytes) -> str:
