@@ -132,6 +132,40 @@ async def log_http_traffic(request: Request, call_next):
     return response
 
 
+# ─── Debug helpers ─────────────────────────────────────────────────────
+# Registered before the catch-all below, which would otherwise shadow them.
+
+@app.get("/debug/traffic")
+async def debug_traffic(lines: int = 60, body_chars: int = 600):
+    """
+    Return recent request/response pairs from the traffic log.
+
+    Useful for working out which call the game client makes while loading a
+    room, without needing shell access to the host.
+    """
+    if not HTTP_LOG_FILE.exists():
+        return {"log_path": str(HTTP_LOG_FILE), "entries": [], "note": "no traffic yet"}
+    text = HTTP_LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    chunks = [c for c in text.split("=" * 80) if c.strip()]
+    parsed = []
+    for chunk in chunks[-lines:]:
+        entry = {}
+        for line in chunk.strip().splitlines():
+            if ": " in line:
+                key, value = line.split(": ", 1)
+                entry[key.strip()] = value.strip()
+        if entry:
+            entry["RequestBody"] = entry.get("RequestBody", "")[:body_chars]
+            entry["ResponseBody"] = entry.get("ResponseBody", "")[:body_chars]
+            parsed.append(entry)
+    return {
+        "log_path": str(HTTP_LOG_FILE),
+        "total_entries": len(chunks),
+        "returned": len(parsed),
+        "entries": parsed,
+    }
+
+
 # ─── Startup ─────────────────────────────────────────────────────────
 
 # ─── Include routers ─────────────────────────────────────────────────

@@ -31,6 +31,12 @@ if DEFAULT_ROOM_MAP_PATH.exists():
         print(f"[seed] Error loading default_room_map.json: {e}")
 
 
+# The versionKey every room references. The captured world grid is labelled
+# "beta4" internally, but rooms ask for "teams1", so the document must be keyed
+# by the key the client uses or the lookup misses and the room loads with no
+# blocks at all.
+WORLD_VERSION_KEY = "teams1"
+
 # Official room names from the captured BatchGetItem response
 OFFICIAL_ROOMS = [
     {"roomKey": "tutorial", "roomName": "Tutorial", "isOfficial": 1},
@@ -136,12 +142,16 @@ async def seed_database():
     # ── Seed world map ──
     if WORLD_MAP_TEAMS1:
         print("[seed] Syncing room_maps (world grid)...")
+        # Only copy the payload: $set-ing the captured versionKey would rewrite
+        # the filter key and store the grid under a key no room references.
+        payload = {k: v for k, v in WORLD_MAP_TEAMS1.items() if k != "versionKey"}
         await room_maps.update_one(
-            {"versionKey": WORLD_MAP_TEAMS1.get("versionKey", "beta4")},
-            {"$set": WORLD_MAP_TEAMS1},
+            {"versionKey": WORLD_VERSION_KEY},
+            {"$set": {"versionKey": WORLD_VERSION_KEY, **payload}},
             upsert=True,
         )
-        print(f"[seed]   -> Upserted primary world map ({WORLD_MAP_TEAMS1.get('versionKey', 'beta4')})")
+        placements = len(payload.get("data") or [])
+        print(f"[seed]   -> Upserted world map {WORLD_VERSION_KEY} ({placements} room placements)")
 
         seeded_any = True
     else:

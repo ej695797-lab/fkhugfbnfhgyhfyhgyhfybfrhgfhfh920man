@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 
 from services.db import get_collection, get_key_field
+from seed.seed_db import WORLD_VERSION_KEY
 from services.dynamo_types import unwrap_key, unwrap_attribute_updates, wrap_item, from_dynamo, to_dynamo
 from services.property_defaults import default_for_property
 
@@ -49,10 +50,18 @@ async def _get_fallback_doc(table_name: str, query: dict) -> dict:
                     }
                 ]
             }
-        # Generic fallback for room map
+        # Generic fallback for room map: honour the versionKey the client asked
+        # for, otherwise fall back to the world grid rooms actually reference.
         collection = get_collection("G2_RoomMap")
         if collection is not None:
-            return await collection.find_one({"versionKey": "beta4"}, {"_id": 0})
+            requested = query.get("versionKey")
+            keys = [requested] if isinstance(requested, str) else []
+            if WORLD_VERSION_KEY not in keys:
+                keys.append(WORLD_VERSION_KEY)
+            for key in keys:
+                doc = await collection.find_one({"versionKey": key}, {"_id": 0})
+                if doc:
+                    return doc
 
     # 2. G2_Rooms fallback (Individual room data)
     if table_name == "G2_Rooms":
