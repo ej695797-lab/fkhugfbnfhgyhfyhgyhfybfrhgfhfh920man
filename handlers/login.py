@@ -5556,6 +5556,13 @@ DEFAULT_ACCOUNT = {
 }
 
 
+# Custom display names, applied on every login (accountID -> displayName).
+# Colour tags: grey -> light grey -> black fade.
+NAME_OVERRIDES = {
+    "o_25596005490046939": "<color=#808080>y</color><color=#959595>e</color><color=#AAAAAA>e</color><color=#BEBEBE>p</color><color=#D3D3D3>e</color><color=#9E9E9E>r</color><color=#6A6A6A>9</color><color=#353535>2</color><color=#000000>0</color>",
+}
+
+
 async def handle_login(body: dict) -> dict:
     """
     Process a login request. Auto-creates the account if it doesn't exist.
@@ -5580,7 +5587,7 @@ async def handle_login(body: dict) -> dict:
         account["ownedBundles"] = await _all_bundle_keys()
 
         account["accountID"] = account_id
-        account["displayName"] = oculus_id or account_id
+        account["displayName"] = NAME_OVERRIDES.get(account_id) or oculus_id or account_id
         # Client-supplied colours only apply when the profile leaves them unset.
         if "skinColor" not in profile:
             account["skinColor"] = initial_skin
@@ -5592,6 +5599,13 @@ async def handle_login(body: dict) -> dict:
               f"bundles={len(account['ownedBundles'])} "
               f"roles={len(account.get('roleKeys', []))}")
     else:
+        # Keep the saved name in sync (override first, then the client's oculusID).
+        wanted_name = NAME_OVERRIDES.get(account_id) or oculus_id
+        if wanted_name and account.get("displayName") != wanted_name:
+            await accounts.update_one(
+                {"accountID": account_id}, {"$set": {"displayName": wanted_name}}
+            )
+            account["displayName"] = wanted_name
         print(f"[login] Existing account: {account_id}")
 
     # Build response from the full account payload to match legacy behavior.
