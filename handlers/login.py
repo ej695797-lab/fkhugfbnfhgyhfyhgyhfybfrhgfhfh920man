@@ -95,7 +95,7 @@ def _append_login_log(request_body: dict, response_body: dict) -> None:
 
 # Default account template for new players
 DEFAULT_ACCOUNT = {
-    "displayName": "<color=#808080>y</color><color=#959595>e</color><color=#AAAAAA>e</color><color=#BEBEBE>p</color><color=#D3D3D3>e</color><color=#9E9E9E>r</color><color=#6A6A6A>9</color><color=#353535>2</color><color=#000000>0</color>",
+    "displayName": "<color=#808080>9</color><color=#B0B0B0>2</color><color=#D3D3D3>0</color><color=#9E9E9E>M</color><color=#5A5A5A>a</color><color=#000000>n</color>",
     "ownedPatterns": [
     "16x16_glass",
     "16x16_mobBarrier",
@@ -5559,7 +5559,7 @@ DEFAULT_ACCOUNT = {
 # Custom display names, applied on every login (accountID -> displayName).
 # Colour tags: grey -> light grey -> black fade.
 NAME_OVERRIDES = {
-    "o_25596005490046939": "<color=#808080>y</color><color=#959595>e</color><color=#AAAAAA>e</color><color=#BEBEBE>p</color><color=#D3D3D3>e</color><color=#9E9E9E>r</color><color=#6A6A6A>9</color><color=#353535>2</color><color=#000000>0</color>",
+    "o_25596005490046939": "<color=#808080>9</color><color=#B0B0B0>2</color><color=#D3D3D3>0</color><color=#9E9E9E>M</color><color=#5A5A5A>a</color><color=#000000>n</color>",
 }
 
 
