@@ -198,7 +198,11 @@ async def catch_all(request: Request, path: str = ""):
     # ── 1. Photon Auth: GET / with query string ──
     if method == "GET" and path == "" and str(request.query_params):
         q = request.query_params
-        account_id = q.get("UserId") or q.get("userId") or q.get("accountID") or "o_0"
+        raw_user_id = q.get("UserId") or q.get("userId") or q.get("accountID") or "o_0"
+        # The client echoes back the full "account$VR$name" string we returned
+        # last time, so strip any existing suffix before rebuilding it.
+        # Without this the UserId doubles on every reconnect.
+        account_id = raw_user_id.split("$VR$")[0].strip() or "o_0"
         username = q.get("UserName") or q.get("userName") or q.get("username")
         if not username and account_id:
             account_doc = await accounts.find_one({"accountID": account_id}, {"_id": 0, "displayName": 1})

@@ -25,6 +25,10 @@ async def photon_auth(request: Request):
     user_id = query_params.get("UserId") or query_params.get("userId") or query_params.get("accountID")
     username = query_params.get("UserName") or query_params.get("userName") or query_params.get("username")
     platform = "VR"
+    # Reconnect echoes return the full "account$VR$name" string from the
+    # previous auth, so keep only the accountID before rebuilding.
+    if user_id:
+        user_id = user_id.split("$VR$")[0].strip()
 
     if request.method == "POST":
         raw = await request.body()
@@ -44,6 +48,9 @@ async def photon_auth(request: Request):
             except Exception:
                 pass
 
+    # POST bodies can carry a composite UserId too.
+    if user_id:
+        user_id = user_id.split("$VR$")[0].strip()
     if not user_id:
         user_id = "o_0"
     if not username:
