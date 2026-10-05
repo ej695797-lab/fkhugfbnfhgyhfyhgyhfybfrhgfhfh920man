@@ -48,7 +48,7 @@ async def photon_auth(request: Request):
     if not user_id:
         user_id = "o_0"
     if not username:
-account_doc = await accounts.find_one({"accountID": user_id}, {"_id": 0, "displayName": 1})
+        account_doc = await accounts.find_one({"accountID": user_id}, {"_id": 0, "displayName": 1})
         if account_doc and isinstance(account_doc.get("displayName"), str) and account_doc["displayName"].strip():
             username = account_doc["displayName"].strip()
         if not username:

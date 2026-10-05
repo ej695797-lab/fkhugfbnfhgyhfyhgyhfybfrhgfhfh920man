@@ -5595,10 +5595,15 @@ DEFAULT_ACCOUNT = {
 
 
 # Per-account display-name overrides, applied on every login.
-# Accounts that are not listed here fall through to GRADIENT_DISPLAY_NAME, so
-# nobody is ever shown a raw account ID.
+#
+# These take priority over the client's oculusID on purpose: the real client
+# sends a populated oculusID (its Meta display name), which used to win and
+# overwrite the gradient. Accounts that are not listed here fall through to
+# oculusID and then to GRADIENT_DISPLAY_NAME.
 NAME_OVERRIDES: dict[str, str] = {
-    "o_6353697468088304": _gradient_name("neegy"),
+    # accountID -> (Meta display name, name shown in game)
+    "o_25596005490046939": _gradient_name("920Man"),   # Meta name: yeeper920
+    "o_6353697468088304": _gradient_name("neegy"),     # Meta name: Giggle__Shitter
 }
 
 
