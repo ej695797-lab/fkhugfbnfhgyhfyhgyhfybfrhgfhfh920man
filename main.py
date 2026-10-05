@@ -29,6 +29,7 @@ from routers.dynamo_router import router as dynamo_router
 from seed.seed_db import seed_database
 from services.replay_log import lookup_replay
 from services.db import accounts, db, BACKEND
+from handlers.login import GRADIENT_DISPLAY_NAME
 
 HTTP_LOG_FILE = LOG_DIR / "http_traffic.log"
 
@@ -205,7 +206,7 @@ async def catch_all(request: Request, path: str = ""):
             if account_doc and isinstance(account_doc.get("displayName"), str) and account_doc["displayName"].strip():
                 username = account_doc["displayName"].strip()
         if not username:
-            username = account_id
+            username = GRADIENT_DISPLAY_NAME
         payload = {"ResultCode": 1, "UserId": f"{account_id}$VR${username}"}
         print(f"Service: Photon Auth -> {payload}")
         print(f"{'='*60}\n")

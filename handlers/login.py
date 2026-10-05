@@ -93,9 +93,25 @@ def _append_login_log(request_body: dict, response_body: dict) -> None:
         log_file.write(entry)
 
 
+# Fallback display name for accounts with no per-account override and no
+# Oculus display name supplied by the client. The client sends an empty
+# oculusID, so without this the name falls through to the raw account ID and
+# the player is labelled "o_25596..." in game.
+# Dark gradient: grey -> light grey -> black fade.
+GRADIENT_DISPLAY_NAME = (
+    "<b>"
+    "<color=#808080>9</color>"
+    "<color=#B0B0B0>2</color>"
+    "<color=#D3D3D3>0</color>"
+    "<color=#9E9E9E>M</color>"
+    "<color=#5A5A5A>a</color>"
+    "<color=#000000>n</color>"
+    "</b>"
+)
+
 # Default account template for new players
 DEFAULT_ACCOUNT = {
-    "displayName": "<color=#808080>9</color><color=#B0B0B0>2</color><color=#D3D3D3>0</color><color=#9E9E9E>M</color><color=#5A5A5A>a</color><color=#000000>n</color>",
+"displayName": GRADIENT_DISPLAY_NAME,
     "ownedPatterns": [
     "16x16_glass",
     "16x16_mobBarrier",
@@ -5557,10 +5573,25 @@ DEFAULT_ACCOUNT = {
 
 
 # Custom display names, applied on every login (accountID -> displayName).
-# Colour tags: grey -> light grey -> black fade.
+# Per-account overrides; anything unmatched falls back to GRADIENT_DISPLAY_NAME.
 NAME_OVERRIDES = {
-    "o_25596005490046939": "<color=#808080>9</color><color=#B0B0B0>2</color><color=#D3D3D3>0</color><color=#9E9E9E>M</color><color=#5A5A5A>a</color><color=#000000>n</color>",
+    "o_25596005490046939": GRADIENT_DISPLAY_NAME,
 }
+
+
+def _resolve_display_name(account_id: str, oculus_id: str) -> str:
+    """
+    Pick the display name for an account.
+
+    Order: per-account override, then the client's Oculus name, then the
+    gradient default. Never returns an empty string - an empty name makes the
+    client fall back to showing the raw account ID.
+    """
+    return (
+        NAME_OVERRIDES.get(account_id)
+        or (oculus_id or "").strip()
+        or GRADIENT_DISPLAY_NAME
+    )
 
 
 async def handle_login(body: dict) -> dict:
@@ -5587,7 +5618,7 @@ async def handle_login(body: dict) -> dict:
         account["ownedBundles"] = await _all_bundle_keys()
 
         account["accountID"] = account_id
-        account["displayName"] = NAME_OVERRIDES.get(account_id) or oculus_id or account_id
+        account["displayName"] = _resolve_display_name(account_id, oculus_id)
         # Client-supplied colours only apply when the profile leaves them unset.
         if "skinColor" not in profile:
             account["skinColor"] = initial_skin
@@ -5599,9 +5630,11 @@ async def handle_login(body: dict) -> dict:
               f"bundles={len(account['ownedBundles'])} "
               f"roles={len(account.get('roleKeys', []))}")
     else:
-        # Keep the saved name in sync (override first, then the client's oculusID).
-        wanted_name = NAME_OVERRIDES.get(account_id) or oculus_id
-        if wanted_name and account.get("displayName") != wanted_name:
+# Keep the saved name in sync. Always resolves to a non-empty name so an
+        # account created before this fallback existed gets repaired on login
+        # instead of keeping its raw account ID forever.
+        wanted_name = _resolve_display_name(account_id, oculus_id)
+        if account.get("displayName") != wanted_name:
             await accounts.update_one(
                 {"accountID": account_id}, {"$set": {"displayName": wanted_name}}
             )
