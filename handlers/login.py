@@ -5572,11 +5572,10 @@ DEFAULT_ACCOUNT = {
 }
 
 
-# Custom display names, applied on every login (accountID -> displayName).
-# Per-account overrides; anything unmatched falls back to GRADIENT_DISPLAY_NAME.
-NAME_OVERRIDES = {
-    "o_25596005490046939": GRADIENT_DISPLAY_NAME,
-}
+# Per-account display-name overrides, applied on every login.
+# Empty by design: every account, including yours, falls through to
+# GRADIENT_DISPLAY_NAME so nobody is ever shown a raw account ID.
+NAME_OVERRIDES: dict[str, str] = {}
 
 
 def _resolve_display_name(account_id: str, oculus_id: str) -> str:
