@@ -98,16 +98,38 @@ def _append_login_log(request_body: dict, response_body: dict) -> None:
 # oculusID, so without this the name falls through to the raw account ID and
 # the player is labelled "o_25596..." in game.
 # Dark gradient: grey -> light grey -> black fade.
-GRADIENT_DISPLAY_NAME = (
-    "<b>"
-    "<color=#808080>9</color>"
-    "<color=#B0B0B0>2</color>"
-    "<color=#D3D3D3>0</color>"
-    "<color=#9E9E9E>M</color>"
-    "<color=#5A5A5A>a</color>"
-    "<color=#000000>n</color>"
-    "</b>"
+GRADIENT_PALETTE = (
+    "#808080",
+    "#B0B0B0",
+    "#D3D3D3",
+    "#9E9E9E",
+    "#5A5A5A",
+    "#000000",
 )
+
+
+def _gradient_name(text: str, palette=GRADIENT_PALETTE) -> str:
+    """
+    Wrap each character of `text` in its own colour tag so the name reads as a
+    gradient across the nameplate.
+
+    The palette is sampled evenly over the characters, so shorter names fade
+    over the same dark range instead of only showing the first few stops.
+    """
+    chars = list(text)
+    if not chars:
+        return ""
+
+    last = len(palette) - 1
+    out = ["<b>"]
+    for i, ch in enumerate(chars):
+        colour = palette[round(i * last / max(len(chars) - 1, 1))]
+        out.append(f"<color={colour}>{ch}</color>")
+    out.append("</b>")
+    return "".join(out)
+
+
+GRADIENT_DISPLAY_NAME = _gradient_name("920Man")
 
 # Default account template for new players
 DEFAULT_ACCOUNT = {
@@ -5573,9 +5595,11 @@ DEFAULT_ACCOUNT = {
 
 
 # Per-account display-name overrides, applied on every login.
-# Empty by design: every account, including yours, falls through to
-# GRADIENT_DISPLAY_NAME so nobody is ever shown a raw account ID.
-NAME_OVERRIDES: dict[str, str] = {}
+# Accounts that are not listed here fall through to GRADIENT_DISPLAY_NAME, so
+# nobody is ever shown a raw account ID.
+NAME_OVERRIDES: dict[str, str] = {
+    "o_6353697468088304": _gradient_name("neegy"),
+}
 
 
 def _resolve_display_name(account_id: str, oculus_id: str) -> str:
