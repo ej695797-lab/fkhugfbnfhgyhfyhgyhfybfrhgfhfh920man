@@ -93,10 +93,7 @@ def _append_login_log(request_body: dict, response_body: dict) -> None:
         log_file.write(entry)
 
 
-# Fallback display name for accounts with no per-account override and no
-# Oculus display name supplied by the client. The client sends an empty
-# oculusID, so without this the name falls through to the raw account ID and
-# the player is labelled "o_25596..." in game.
+# Palette used to build gradient display names for whitelisted accounts.
 # Dark gradient: grey -> light grey -> black fade.
 GRADIENT_PALETTE = (
     "#808080",
@@ -129,11 +126,9 @@ def _gradient_name(text: str, palette=GRADIENT_PALETTE) -> str:
     return "".join(out)
 
 
-GRADIENT_DISPLAY_NAME = _gradient_name("920Man")
-
 # Default account template for new players
 DEFAULT_ACCOUNT = {
-"displayName": GRADIENT_DISPLAY_NAME,
+    "displayName": "",
     "ownedPatterns": [
     "16x16_glass",
     "16x16_mobBarrier",
@@ -5594,14 +5589,10 @@ DEFAULT_ACCOUNT = {
 }
 
 
-# Per-account display-name overrides, applied on every login.
-#
-# These take priority over the client's oculusID on purpose: the real client
-# sends a populated oculusID (its Meta display name), which used to win and
-# overwrite the gradient. Accounts that are not listed here fall through to
-# oculusID and then to GRADIENT_DISPLAY_NAME.
+# Whitelisted accounts get a fixed gradient name. Everyone else falls back to
+# the original behaviour (the client's own Oculus name, then the account ID),
+# so unlisted players are unaffected.
 NAME_OVERRIDES: dict[str, str] = {
-    # accountID -> (Meta display name, name shown in game)
     "o_25596005490046939": _gradient_name("920Man"),   # Meta name: yeeper920
     "o_6353697468088304": _gradient_name("neegy"),     # Meta name: Giggle__Shitter
 }
@@ -5611,15 +5602,11 @@ def _resolve_display_name(account_id: str, oculus_id: str) -> str:
     """
     Pick the display name for an account.
 
-    Order: per-account override, then the client's Oculus name, then the
-    gradient default. Never returns an empty string - an empty name makes the
-    client fall back to showing the raw account ID.
+    Whitelisted accountIDs keep their gradient name. Everything else keeps the
+    original behaviour of using the client's Oculus name, falling back to the
+    account ID when the client sends none.
     """
-    return (
-        NAME_OVERRIDES.get(account_id)
-        or (oculus_id or "").strip()
-        or GRADIENT_DISPLAY_NAME
-    )
+    return NAME_OVERRIDES.get(account_id) or oculus_id or account_id
 
 
 async def handle_login(body: dict) -> dict:
@@ -5658,9 +5645,7 @@ async def handle_login(body: dict) -> dict:
               f"bundles={len(account['ownedBundles'])} "
               f"roles={len(account.get('roleKeys', []))}")
     else:
-# Keep the saved name in sync. Always resolves to a non-empty name so an
-        # account created before this fallback existed gets repaired on login
-        # instead of keeping its raw account ID forever.
+# Whitelisted accounts get their gradient name written back on login.
         wanted_name = _resolve_display_name(account_id, oculus_id)
         if account.get("displayName") != wanted_name:
             await accounts.update_one(

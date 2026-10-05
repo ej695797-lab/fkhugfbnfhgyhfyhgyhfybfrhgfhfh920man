@@ -9,7 +9,6 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from services.db import accounts
-from handlers.login import GRADIENT_DISPLAY_NAME
 
 router = APIRouter()
 
@@ -52,7 +51,7 @@ async def photon_auth(request: Request):
         if account_doc and isinstance(account_doc.get("displayName"), str) and account_doc["displayName"].strip():
             username = account_doc["displayName"].strip()
         if not username:
-            username = GRADIENT_DISPLAY_NAME
+            username = user_id
 
     user_id = f"{user_id}${platform}${username}"
 
